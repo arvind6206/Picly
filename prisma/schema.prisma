@@ -11,3 +11,30 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(TEAM_MEMBER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Events created by Admin
+  //createdEvents Event[] @relation("EventCreator")
+
+  // Events assigned to this user
+  //events Event[] @relation("EventMembers")
+
+  // Photos uploaded by this user
+ // photos Photo[]
+
+  //createdGalleries Gallery[] @relation("GalleryCreator")
+}
+
+enum Role {
+  ADMIN
+  TEAM_MEMBER
+}

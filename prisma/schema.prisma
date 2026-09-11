@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../app/generated/prisma"
@@ -19,22 +14,128 @@ model User {
   email     String   @unique
   password  String
   role      Role     @default(TEAM_MEMBER)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Events created by Admin
-  //createdEvents Event[] @relation("EventCreator")
+  createdEvents Event[] @relation("EventCreator")
 
   // Events assigned to this user
-  //events Event[] @relation("EventMembers")
+  events Event[] @relation("EventMembers")
 
   // Photos uploaded by this user
- // photos Photo[]
+  photos Photo[]
 
-  //createdGalleries Gallery[] @relation("GalleryCreator")
+  // Galleries created by Admin
+  createdGalleries Gallery[] @relation("GalleryCreator")
 }
+
+
 
 enum Role {
   ADMIN
   TEAM_MEMBER
+}
+
+
+
+model Event {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  eventDate   DateTime?
+
+  createdById String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Admin who created the event
+  createdBy User @relation("EventCreator", fields: [createdById], references: [id])
+
+  // Team members assigned to event
+  members User[] @relation("EventMembers")
+
+  // Photos uploaded for this event
+  photos Photo[]
+
+  // One event can have one gallery
+  gallery Gallery?
+}
+
+
+
+model Photo {
+  id           String   @id @default(cuid())
+
+  eventId      String
+  uploadedById String
+
+  filename     String
+
+  storageKey   String
+
+  storageUrl   String?
+
+  fileSize     Int
+
+  createdAt DateTime @default(now())
+
+  // Event to which photo belongs
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  // User who uploaded photo
+  uploadedBy User @relation(fields: [uploadedById], references: [id])
+
+  // Gallery selection
+  galleryPhotos GalleryPhoto[]
+}
+
+
+
+model Gallery {
+  id          String          @id @default(cuid())
+
+  eventId     String          @unique
+
+  createdById String
+
+  token       String          @unique
+
+  pinHash     String
+
+  isPublished Boolean         @default(false)
+
+  publishedAt DateTime?
+
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  // Event
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  // Admin
+  createdBy User @relation("GalleryCreator", fields: [createdById], references: [id])
+
+  // Selected photos
+  photos GalleryPhoto[]
+}
+
+
+
+model GalleryPhoto {
+  id        String @id @default(cuid())
+
+  galleryId String
+  photoId   String
+
+  createdAt DateTime @default(now())
+
+  gallery   Gallery @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+
+  photo     Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  // Prevent same photo from being selected twice
+  @@unique([galleryId, photoId])
 }

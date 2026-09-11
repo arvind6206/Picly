@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-import prisma from "../../../../lib/db";
-import { loginSchema } from "../../../../lib/validations/auth";
+import prisma from "@/lib/db";
+import { loginSchema } from "@/lib/validations/auth";
 
 export async function POST(req: NextRequest) {
   try {

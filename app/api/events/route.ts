@@ -6,7 +6,23 @@ import { createEventSchema } from "@/lib/validations/event";
 export async function POST(req: NextRequest) {
   try {
     const userId = await getUserIdFromRequest(req);
+
     const body = await req.json();
+
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user || user.role !== "ADMIN") {
+      return NextResponse.json(
+        {
+          message: "Only admins can create events",
+        },
+        { status: 403 }
+      );
+    }
 
     const result = createEventSchema.safeParse(body);
 
@@ -26,7 +42,7 @@ export async function POST(req: NextRequest) {
       data: {
         name,
         description,
-        eventDate: eventDate ? new Date(eventDate) : null,
+        eventDate,
         createdById: userId,
       },
     });

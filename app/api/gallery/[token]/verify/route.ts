@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = params;
+    const { token } = await params;
     const body = await req.json();
 
     const { pin } = body;
@@ -56,10 +57,22 @@ export async function POST(
       );
     }
 
+    const galleryToken = jwt.sign(
+      {
+        galleryId: gallery.id,
+        galleryToken: token,
+      },
+      process.env.JWT_SECRET!,
+      {
+        expiresIn: "1h",
+      }
+    );
+
     return NextResponse.json(
       {
         message: "PIN verified successfully",
         valid: true,
+        galleryToken,
       },
       { status: 200 }
     );

@@ -4,11 +4,11 @@ import { getUserIdFromRequest } from "@/lib/getUserIdFromRequest";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
     const userId = await getUserIdFromRequest(req);
-    const { eventId } = params;
+    const { eventId } = await params;
     const body = await req.json();
 
     const { filename, storageKey, storageUrl, fileSize } = body;
@@ -90,11 +90,11 @@ export async function POST(
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
     const userId = await getUserIdFromRequest(req);
-    const { eventId } = params;
+    const { eventId } = await params;
 
     const event = await prisma.event.findFirst({
       where: {

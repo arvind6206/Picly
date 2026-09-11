@@ -6,11 +6,11 @@ import bcrypt from "bcryptjs";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
     const userId = await getUserIdFromRequest(req);
-    const { eventId } = params;
+    const { eventId } = await params;
     const body = await req.json();
 
     const result = publishGallerySchema.safeParse(body);

@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getUserIdFromRequest } from "@/lib/getUserIdFromRequest";
-import { updateEventSchema } from "@/lib/validations/event";
+import { createEventSchema } from "@/lib/validations/event";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
     const userId = await getUserIdFromRequest(req);
-    const { eventId } = params;
+    const { eventId } = await params;
 
     const event = await prisma.event.findFirst({
       where: {
@@ -84,14 +84,14 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
     const userId = await getUserIdFromRequest(req);
-    const { eventId } = params;
+    const { eventId } = await params;
     const body = await req.json();
 
-    const result = updateEventSchema.safeParse(body);
+    const result = createEventSchema.safeParse(body);
 
     if (!result.success) {
       return NextResponse.json(
@@ -119,17 +119,12 @@ export async function PATCH(
       );
     }
 
-    const { name, description, eventDate } = result.data;
 
     const updatedEvent = await prisma.event.update({
       where: {
         id: eventId,
       },
-      data: {
-        ...(name && { name }),
-        ...(description !== undefined && { description }),
-        ...(eventDate !== undefined && { eventDate: eventDate ? new Date(eventDate) : null }),
-      },
+      data: result.data
     });
 
     return NextResponse.json(
@@ -141,6 +136,63 @@ export async function PATCH(
     );
   } catch (error) {
     console.error("UPDATE EVENT ERROR:", error);
+
+    if (error instanceof Error) {
+      return NextResponse.json(
+        {
+          message: error.message,
+        },
+        { status: 401 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        message: "Something went wrong",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ eventId: string }> }
+) {
+  try {
+    const userId = await getUserIdFromRequest(req);
+    const { eventId } = await params;
+
+    const event = await prisma.event.findFirst({
+      where: {
+        id: eventId,
+        createdById: userId,
+      },
+    });
+
+    if (!event) {
+      return NextResponse.json(
+        {
+          message: "Event not found or you don't have permission",
+        },
+        { status: 404 }
+      );
+    }
+
+    await prisma.event.delete({
+      where: {
+        id: eventId,
+      },
+    });
+
+    return NextResponse.json(
+      {
+        message: "Event deleted successfully",
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("DELETE EVENT ERROR:", error);
 
     if (error instanceof Error) {
       return NextResponse.json(

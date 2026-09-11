@@ -2,18 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getUserIdFromRequest } from "@/lib/getUserIdFromRequest";
 
-export async function DELETE(
+export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ eventId: string; userId: string }> }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
-    const currentUserId = await getUserIdFromRequest(req);
-    const { eventId, userId: memberUserId } = await params;
+    const userId = await getUserIdFromRequest(req);
+    const { eventId } = await params;
 
     const event = await prisma.event.findFirst({
       where: {
         id: eventId,
-        createdById: currentUserId,
+        createdById: userId,
       },
     });
 
@@ -26,38 +26,40 @@ export async function DELETE(
       );
     }
 
-    const updatedEvent = await prisma.event.update({
+    const gallery = await prisma.gallery.findUnique({
       where: {
-        id: eventId,
+        eventId,
+      },
+    });
+
+    if (!gallery) {
+      return NextResponse.json(
+        {
+          message: "Gallery not found",
+        },
+        { status: 404 }
+      );
+    }
+
+    const updatedGallery = await prisma.gallery.update({
+      where: {
+        id: gallery.id,
       },
       data: {
-        members: {
-          disconnect: {
-            id: memberUserId,
-          },
-        },
-      },
-      include: {
-        members: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
-        },
+        isPublished: false,
+        publishedAt: null,
       },
     });
 
     return NextResponse.json(
       {
-        message: "Team member removed successfully",
-        event: updatedEvent,
+        message: "Gallery unpublished successfully",
+        gallery: updatedGallery,
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error("REMOVE MEMBER ERROR:", error);
+    console.error("UNPUBLISH GALLERY ERROR:", error);
 
     if (error instanceof Error) {
       return NextResponse.json(

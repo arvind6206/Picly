@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserIdFromRequest } from "../../../../lib/getUserIdFromRequest";
+import { getUserIdFromRequest } from "@/lib/getUserIdFromRequest";
 
 export async function POST(req: NextRequest) {
   try {

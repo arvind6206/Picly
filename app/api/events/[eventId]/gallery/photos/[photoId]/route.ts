@@ -4,11 +4,11 @@ import { getUserIdFromRequest } from "@/lib/getUserIdFromRequest";
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { eventId: string; photoId: string } }
+  { params }: { params: Promise<{ eventId: string; photoId: string }> }
 ) {
   try {
     const userId = await getUserIdFromRequest(req);
-    const { eventId, photoId } = params;
+    const { eventId, photoId } = await params;
 
     const event = await prisma.event.findFirst({
       where: {

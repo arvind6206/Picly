@@ -4,19 +4,19 @@ import { getUserIdFromRequest } from "@/lib/getUserIdFromRequest";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
     const userId = await getUserIdFromRequest(req);
-    const { eventId } = params;
+    const { eventId } = await params;
     const body = await req.json();
 
-    const { photoId } = body;
+    const { photoIds } = body;
 
-    if (!photoId) {
+    if (!photoIds || !Array.isArray(photoIds) || photoIds.length === 0) {
       return NextResponse.json(
         {
-          message: "Photo ID is required",
+          message: "Photo IDs array is required",
         },
         { status: 400 }
       );
@@ -53,40 +53,41 @@ export async function POST(
       );
     }
 
-    const photo = await prisma.photo.findUnique({
+    const photos = await prisma.photo.findMany({
       where: {
-        id: photoId,
+        id: {
+          in: photoIds,
+        },
+        eventId,
       },
     });
 
-    if (!photo || photo.eventId !== eventId) {
+    if (photos.length !== photoIds.length) {
       return NextResponse.json(
         {
-          message: "Photo not found or does not belong to this event",
+          message: "Some photos not found or do not belong to this event",
         },
         { status: 404 }
       );
     }
 
-    const galleryPhoto = await prisma.galleryPhoto.create({
-      data: {
+    const galleryPhotos = await prisma.galleryPhoto.createMany({
+      data: photoIds.map((photoId: string) => ({
         galleryId: gallery.id,
         photoId,
-      },
-      include: {
-        photo: true,
-      },
+      })),
+      skipDuplicates: true,
     });
 
     return NextResponse.json(
       {
-        message: "Photo added to gallery successfully",
-        galleryPhoto,
+        message: "Photos added to gallery successfully",
+        count: galleryPhotos.count,
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error("ADD PHOTO TO GALLERY ERROR:", error);
+    console.error("ADD PHOTOS TO GALLERY ERROR:", error);
 
     if (error instanceof Error) {
       return NextResponse.json(
@@ -108,27 +109,16 @@ export async function POST(
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
     const userId = await getUserIdFromRequest(req);
-    const { eventId } = params;
+    const { eventId } = await params;
 
     const event = await prisma.event.findFirst({
       where: {
         id: eventId,
-        OR: [
-          {
-            createdById: userId,
-          },
-          {
-            members: {
-              some: {
-                id: userId,
-              },
-            },
-          },
-        ],
+        createdById: userId,
       },
     });
 

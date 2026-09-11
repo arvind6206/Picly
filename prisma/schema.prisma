@@ -7,12 +7,13 @@ datasource db {
   provider = "postgresql"
 }
 
+
 model User {
-  id       String @id @default(cuid())
-  name     String
-  email    String @unique
-  password String
-  role     Role   @default(TEAM_MEMBER)
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(TEAM_MEMBER)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -30,13 +31,17 @@ model User {
   createdGalleries Gallery[] @relation("GalleryCreator")
 }
 
+
+
 enum Role {
   ADMIN
   TEAM_MEMBER
 }
 
+
+
 model Event {
-  id          String  @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
   description String?
   eventDate   String?
@@ -59,19 +64,21 @@ model Event {
   gallery Gallery?
 }
 
+
+
 model Photo {
-  id String @id @default(cuid())
+  id           String   @id @default(cuid())
 
   eventId      String
   uploadedById String
 
-  filename String
+  filename     String
 
-  storageKey String
+  storageKey   String
 
-  storageUrl String?
+  storageUrl   String?
 
-  fileSize Int
+  fileSize     Int
 
   createdAt DateTime @default(now())
 
@@ -85,23 +92,25 @@ model Photo {
   galleryPhotos GalleryPhoto[]
 }
 
-model Gallery {
-  id String @id @default(cuid())
 
-  eventId String @unique
+
+model Gallery {
+  id          String          @id @default(cuid())
+
+  eventId     String          @unique
 
   createdById String
 
-  token String @unique
+  token       String          @unique
 
-  pinHash String
+  pinHash     String
 
-  isPublished Boolean @default(false)
+  isPublished Boolean         @default(false)
 
   publishedAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
   // Event
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -113,17 +122,19 @@ model Gallery {
   photos GalleryPhoto[]
 }
 
+
+
 model GalleryPhoto {
-  id String @id @default(cuid())
+  id        String @id @default(cuid())
 
   galleryId String
   photoId   String
 
   createdAt DateTime @default(now())
 
-  gallery Gallery @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  gallery   Gallery @relation(fields: [galleryId], references: [id], onDelete: Cascade)
 
-  photo Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  photo     Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
 
   // Prevent same photo from being selected twice
   @@unique([galleryId, photoId])

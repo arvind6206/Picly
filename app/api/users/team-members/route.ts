@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       {
-        teamMembers,
+        users: teamMembers,
       },
       { status: 200 }
     );

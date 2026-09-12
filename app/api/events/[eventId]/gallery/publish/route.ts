@@ -14,15 +14,22 @@ export async function POST(
 
     const { eventId } = await params;
 
+    // Ensure request has JSON content type
+    const contentType = req.headers.get('content-type') ?? '';
+    if (!contentType.includes('application/json')) {
+      return NextResponse.json(
+        { message: "Unsupported Media Type: Expected application/json" },
+        { status: 415 }
+      );
+    }
+
     // Parse body with error handling
     let body;
     try {
       body = await req.json();
     } catch (parseError) {
       return NextResponse.json(
-        {
-          message: "Invalid JSON in request body",
-        },
+        { message: "Invalid JSON in request body" },
         { status: 400 }
       );
     }

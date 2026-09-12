@@ -81,6 +81,7 @@ export async function GET(req: NextRequest) {
         ],
       },
       include: {
+        _count: { select: { photos: true } },
         createdBy: {
           select: {
             id: true,

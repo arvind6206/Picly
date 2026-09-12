@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Image as ImageIcon, Upload, ArrowLeft, Plus, Trash2 } from "lucide-react"
 import { Loading } from "@/components/ui/loading"
 import { Toast } from "@/components/ui/toast"
+import { Modal } from "@/components/ui/modal"
 
 export default function EventPhotosPage() {
   const router = useRouter()
@@ -20,6 +21,19 @@ export default function EventPhotosPage() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+
+  const openModal = (url: string) => {
+    setSelectedImage(url)
+    setIsModalOpen(true)
+  }
+
+  const closeModal = () => {
+    setIsModalOpen(false)
+    setSelectedImage(null)
+  }
 
   useEffect(() => {
     fetchPhotos()
@@ -158,7 +172,8 @@ export default function EventPhotosPage() {
                     <img
                       src={photo.storageUrl || `https://picsum.photos/seed/${photo.id}/800/600`}
                       alt={photo.filename}
-                      className="w-full h-48 object-cover"
+                      className="w-full h-48 object-cover cursor-pointer"
+                      onClick={() => openModal(photo.storageUrl || `https://picsum.photos/seed/${photo.id}/800/600`)}
                     />
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
                       <div className="flex justify-end">

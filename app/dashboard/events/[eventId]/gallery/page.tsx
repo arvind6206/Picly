@@ -120,13 +120,16 @@ export default function GalleryManagePage() {
       const action = gallery.isPublished ? "unpublish" : "publish"
       const response = await fetch(`/api/events/${eventId}/gallery/${action}`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: pin || "1234" }), // Use existing PIN or default
       })
 
       if (response.ok) {
         setToast({ message: `Gallery ${action}ed successfully`, type: "success" })
         fetchGallery()
       } else {
-        setToast({ message: "Failed to update status", type: "error" })
+        const data = await response.json()
+        setToast({ message: data.message || "Failed to update status", type: "error" })
       }
     } catch (error) {
       setToast({ message: "Something went wrong", type: "error" })

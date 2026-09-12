@@ -11,7 +11,6 @@ import {
   X,
   Menu,
   Loader2,
-  Settings,
   Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -43,6 +42,7 @@ export function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const navigation: NavItem[] = [
     {
@@ -252,22 +252,24 @@ export function DashboardLayout({
                 variant="ghost"
                 size="icon"
                 className="hover:bg-gray-100 relative text-gray-700"
+                onClick={() => setShowNotifications(!showNotifications)}
               >
                 <Bell className="h-5 w-5" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="hover:bg-gray-100 text-gray-700"
-              >
-                <Settings className="h-5 w-5" />
               </Button>
             </div>
           </div>
         </header>
 
+        {showNotifications && (
+          <div className="absolute top-16 right-4 w-80 bg-white shadow-lg rounded-md p-4">
+            <h3 className="text-sm font-medium mb-2">Notifications</h3>
+            <p className="text-xs text-gray-500">No new notifications.</p>
+          </div>
+        )}
+        
         <main className="flex-1 p-6 lg:p-8">
+
           <div className="max-w-7xl mx-auto">
             {children}
           </div>

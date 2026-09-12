@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Calendar, Users, Trash2, Edit } from "lucide-react"
+import { Plus, Calendar, Users, Trash2, Edit, Image as ImageIcon } from "lucide-react"
 import { Loading } from "@/components/ui/loading"
 import { Toast } from "@/components/ui/toast"
 
@@ -109,16 +109,22 @@ export default function EventsPage() {
                       <p className="text-sm text-gray-600">
                         {event.description || "No description"}
                       </p>
-                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4 text-gray-500" />
-                          {event.eventDate ? new Date(event.eventDate).toLocaleDateString() : "No date"}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Users className="h-4 w-4 text-gray-500" />
-                          {event.members?.length || 0} members
-                        </span>
-                      </div>
+                        <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4 text-gray-500" />
+                            {event.eventDate ? new Date(event.eventDate).toLocaleDateString() : "No date"}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Users className="h-4 w-4 text-gray-500" />
+                            {event.members?.length || 0} members
+                          </span>
+                          {event._count?.photos != null && (
+                            <span className="flex items-center gap-1">
+                              <ImageIcon className="h-4 w-4 text-gray-500" />
+                              {event._count.photos} photos
+                            </span>
+                          )}
+                        </div>
                     </div>
                     <div className="flex items-center gap-2">
                       {user?.role === "ADMIN" && (

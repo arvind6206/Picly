@@ -12,6 +12,7 @@ import { Toast } from "@/components/ui/toast"
 import { Modal } from "@/components/ui/modal"
 
 export default function TeamPage() {
+  const [user, setUser] = useState<any>(null)
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
@@ -21,8 +22,29 @@ export default function TeamPage() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
 
   useEffect(() => {
+    fetchUser()
     fetchUsers()
   }, [])
+
+  const fetchUser = async () => {
+    try {
+      const response = await fetch("/api/auth/me")
+      if (response.ok) {
+        const data = await response.json()
+        setUser(data.user)
+
+        // Check if user is ADMIN
+        if (data.user.role !== "ADMIN") {
+          setToast({ message: "Only admins can manage team members", type: "error" })
+          setTimeout(() => router.push("/dashboard"), 2000)
+        }
+      } else {
+        router.push("/auth/login")
+      }
+    } catch (error) {
+      router.push("/auth/login")
+    }
+  }
 
   const fetchUsers = async () => {
     try {
@@ -72,6 +94,23 @@ export default function TeamPage() {
     )
   }
 
+  if (user?.role !== "ADMIN") {
+    return (
+      <DashboardLayout>
+        <div className="max-w-2xl mx-auto">
+          <Card className="border-gray-200 shadow-sm">
+            <CardContent className="p-8 text-center">
+              <p className="text-gray-600 mb-4">Only admins can manage team members.</p>
+              <Button onClick={() => router.push("/dashboard")}>
+                Back to Dashboard
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -86,24 +125,24 @@ export default function TeamPage() {
           </Button>
         </div>
 
-        <Card>
+        <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-gray-900">
+              <Users className="h-5 w-5 text-indigo-600" />
               All Team Members
             </CardTitle>
-            <CardDescription>People in your organization</CardDescription>
+            <CardDescription className="text-gray-600">People in your organization</CardDescription>
           </CardHeader>
           <CardContent>
             {users.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No team members yet</p>
+              <p className="text-gray-600 text-center py-4">No team members yet</p>
             ) : (
               <div className="space-y-2">
                 {users.map((user) => (
                   <div key={user.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                     <div>
                       <p className="font-medium text-gray-900">{user.name}</p>
-                      <p className="text-sm text-gray-500">{user.email}</p>
+                      <p className="text-sm text-gray-600">{user.email}</p>
                     </div>
                     <span className="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full">
                       {user.role}
@@ -123,7 +162,7 @@ export default function TeamPage() {
       >
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name" className="text-gray-700">Name</Label>
             <Input
               id="name"
               type="text"
@@ -133,7 +172,7 @@ export default function TeamPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="text-gray-700">Email</Label>
             <Input
               id="email"
               type="email"
@@ -143,7 +182,7 @@ export default function TeamPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className="text-gray-700">Password</Label>
             <Input
               id="password"
               type="password"

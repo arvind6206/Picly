@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getUserIdFromRequest } from "@/lib/getUserIdFromRequest";
+import { getUserFromRequest, requireAdmin } from "@/lib/auth";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
-    const userId = await getUserIdFromRequest(req);
+    const user = await getUserFromRequest(req);
+    requireAdmin(user);
+
     const { eventId } = await params;
     const body = await req.json();
 
@@ -25,7 +27,7 @@ export async function POST(
     const event = await prisma.event.findFirst({
       where: {
         id: eventId,
-        createdById: userId,
+        createdById: user.id,
       },
     });
 
@@ -91,7 +93,7 @@ export async function POST(
         {
           message: error.message,
         },
-        { status: 401 }
+        { status: error.message.includes("Admin") ? 403 : 401 }
       );
     }
 
@@ -109,13 +111,15 @@ export async function GET(
   { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
-    const userId = await getUserIdFromRequest(req);
+    const user = await getUserFromRequest(req);
+    requireAdmin(user);
+
     const { eventId } = await params;
 
     const event = await prisma.event.findFirst({
       where: {
         id: eventId,
-        createdById: userId,
+        createdById: user.id,
       },
       include: {
         members: {
@@ -152,7 +156,7 @@ export async function GET(
         {
           message: error.message,
         },
-        { status: 401 }
+        { status: error.message.includes("Admin") ? 403 : 401 }
       );
     }
 

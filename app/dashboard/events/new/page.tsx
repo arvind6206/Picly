@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
@@ -8,18 +8,54 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Toast } from "@/components/ui/toast"
+import { Loading } from "@/components/ui/loading"
 
 export default function NewEventPage() {
   const router = useRouter()
+  const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [eventDate, setEventDate] = useState("")
-  const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
+
+  useEffect(() => {
+    fetchUser()
+  }, [])
+
+  const fetchUser = async () => {
+    try {
+      const response = await fetch("/api/auth/me")
+      if (response.ok) {
+        const data = await response.json()
+        setUser(data.user)
+
+        // Check if user is ADMIN
+        if (data.user.role !== "ADMIN") {
+          setToast({ message: "Only admins can create events", type: "error" })
+          setTimeout(() => router.push("/dashboard/events"), 2000)
+        }
+      } else {
+        router.push("/auth/login")
+      }
+    } catch (error) {
+      router.push("/auth/login")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    
+    // Double-check role before submission
+    if (user?.role !== "ADMIN") {
+      setToast({ message: "Only admins can create events", type: "error" })
+      return
+    }
+
+    setSubmitting(true)
 
     try {
       const response = await fetch("/api/events", {
@@ -39,8 +75,33 @@ export default function NewEventPage() {
     } catch (error) {
       setToast({ message: "Something went wrong", type: "error" })
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
+  }
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <Loading />
+      </DashboardLayout>
+    )
+  }
+
+  if (user?.role !== "ADMIN") {
+    return (
+      <DashboardLayout>
+        <div className="max-w-2xl mx-auto">
+          <Card className="border-gray-200 shadow-sm">
+            <CardContent className="p-8 text-center">
+              <p className="text-gray-600 mb-4">Only admins can create events.</p>
+              <Button onClick={() => router.push("/dashboard/events")}>
+                Back to Events
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    )
   }
 
   return (
@@ -51,15 +112,15 @@ export default function NewEventPage() {
           <p className="text-gray-600">Add a new photo event to your gallery</p>
         </div>
 
-        <Card>
+        <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle>Event Details</CardTitle>
-            <CardDescription>Fill in the information for your new event</CardDescription>
+            <CardTitle className="text-gray-900">Event Details</CardTitle>
+            <CardDescription className="text-gray-600">Fill in the information for your new event</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Event Name *</Label>
+                <Label htmlFor="name" className="text-gray-700">Event Name *</Label>
                 <Input
                   id="name"
                   type="text"
@@ -71,7 +132,7 @@ export default function NewEventPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description" className="text-gray-700">Description</Label>
                 <Input
                   id="description"
                   type="text"
@@ -82,7 +143,7 @@ export default function NewEventPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="eventDate">Event Date</Label>
+                <Label htmlFor="eventDate" className="text-gray-700">Event Date</Label>
                 <Input
                   id="eventDate"
                   type="date"
@@ -92,8 +153,8 @@ export default function NewEventPage() {
               </div>
 
               <div className="flex gap-4">
-                <Button type="submit" disabled={loading}>
-                  {loading ? "Creating..." : "Create Event"}
+                <Button type="submit" disabled={submitting}>
+                  {submitting ? "Creating..." : "Create Event"}
                 </Button>
                 <Button
                   type="button"

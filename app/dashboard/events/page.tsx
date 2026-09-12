@@ -11,13 +11,27 @@ import { Toast } from "@/components/ui/toast"
 
 export default function EventsPage() {
   const router = useRouter()
+  const [user, setUser] = useState<any>(null)
   const [events, setEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
 
   useEffect(() => {
+    fetchUser()
     fetchEvents()
   }, [])
+
+  const fetchUser = async () => {
+    try {
+      const response = await fetch("/api/auth/me")
+      if (response.ok) {
+        const data = await response.json()
+        setUser(data.user)
+      }
+    } catch (error) {
+      console.error("Failed to fetch user", error)
+    }
+  }
 
   const fetchEvents = async () => {
     try {
@@ -60,16 +74,18 @@ export default function EventsPage() {
             <h1 className="text-3xl font-bold text-gray-900">Events</h1>
             <p className="text-gray-600">Manage your photo events</p>
           </div>
-          <Button onClick={() => router.push("/dashboard/events/new")}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Event
-          </Button>
+          {user?.role === "ADMIN" && (
+            <Button onClick={() => router.push("/dashboard/events/new")}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Event
+            </Button>
+          )}
         </div>
 
-        <Card>
+        <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle>All Events</CardTitle>
-            <CardDescription>Your photo gallery events</CardDescription>
+            <CardTitle className="text-gray-900">All Events</CardTitle>
+            <CardDescription className="text-gray-600">Your photo gallery events</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -90,35 +106,41 @@ export default function EventsPage() {
                   >
                     <div className="flex-1 cursor-pointer" onClick={() => router.push(`/dashboard/events/${event.id}`)}>
                       <h3 className="font-medium text-gray-900">{event.name}</h3>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-600">
                         {event.description || "No description"}
                       </p>
-                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
                         <span className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
+                          <Calendar className="h-4 w-4 text-gray-500" />
                           {event.eventDate ? new Date(event.eventDate).toLocaleDateString() : "No date"}
                         </span>
                         <span className="flex items-center gap-1">
-                          <Users className="h-4 w-4" />
+                          <Users className="h-4 w-4 text-gray-500" />
                           {event.members?.length || 0} members
                         </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => router.push(`/dashboard/events/${event.id}/edit`)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(event.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
+                      {user?.role === "ADMIN" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-gray-700"
+                          onClick={() => router.push(`/dashboard/events/${event.id}/edit`)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {user?.role === "ADMIN" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-gray-700 hover:text-red-600"
+                          onClick={() => handleDelete(event.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}

@@ -8,17 +8,8 @@ interface JwtPayload {
 export async function getUserIdFromRequest(
   req: NextRequest
 ): Promise<string> {
-  const authHeader = req.headers.get("authorization");
-
-  if (!authHeader) {
-    throw new Error("Authorization header missing");
-  }
-
-  if (!authHeader.startsWith("Bearer ")) {
-    throw new Error("Invalid authorization format");
-  }
-
-  const token = authHeader.split(" ")[1];
+  // Get token from cookie
+  const token = req.cookies.get("token")?.value;
 
   if (!token) {
     throw new Error("Token missing");
@@ -36,6 +27,8 @@ export async function getUserIdFromRequest(
 
     return decoded.userId;
   } catch (error) {
+    console.error("JWT VERIFY ERROR:", error);
+
     throw new Error("Invalid or expired token");
   }
 }

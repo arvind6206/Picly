@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getUserIdFromRequest } from "@/lib/getUserIdFromRequest";
+import { getUserFromRequest, requireAdmin } from "@/lib/auth";
 import { publishGallerySchema } from "@/lib/validations/gallery";
 import bcrypt from "bcryptjs";
 
@@ -9,9 +9,23 @@ export async function POST(
   { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
-    const userId = await getUserIdFromRequest(req);
+    const user = await getUserFromRequest(req);
+    requireAdmin(user);
+
     const { eventId } = await params;
-    const body = await req.json();
+
+    // Parse body with error handling
+    let body;
+    try {
+      body = await req.json();
+    } catch (parseError) {
+      return NextResponse.json(
+        {
+          message: "Invalid JSON in request body",
+        },
+        { status: 400 }
+      );
+    }
 
     const result = publishGallerySchema.safeParse(body);
 
@@ -30,7 +44,7 @@ export async function POST(
     const event = await prisma.event.findFirst({
       where: {
         id: eventId,
-        createdById: userId,
+        createdById: user.id,
       },
     });
 
@@ -86,7 +100,7 @@ export async function POST(
         {
           message: error.message,
         },
-        { status: 401 }
+        { status: error.message.includes("Admin") ? 403 : 401 }
       );
     }
 

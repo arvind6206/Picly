@@ -1,25 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getUserIdFromRequest } from "@/lib/getUserIdFromRequest";
+import { getUserFromRequest, requireAdmin } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
   try {
-    const userId = await getUserIdFromRequest(req);
-
-    const user = await prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
-    });
-
-    if (!user || user.role !== "ADMIN") {
-      return NextResponse.json(
-        {
-          message: "Only admins can view team members",
-        },
-        { status: 403 }
-      );
-    }
+    const user = await getUserFromRequest(req);
+    requireAdmin(user);
 
     const teamMembers = await prisma.user.findMany({
       where: {
@@ -51,7 +37,7 @@ export async function GET(req: NextRequest) {
         {
           message: error.message,
         },
-        { status: 401 }
+        { status: error.message.includes("Admin") ? 403 : 401 }
       );
     }
 

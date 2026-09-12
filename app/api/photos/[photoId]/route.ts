@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getUserIdFromRequest } from "@/lib/getUserIdFromRequest";
+import { getUserFromRequest, requireTeamMemberOrAdmin } from "@/lib/auth";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ photoId: string }> }
 ) {
   try {
-    const userId = await getUserIdFromRequest(req);
+    const user = await getUserFromRequest(req);
+    requireTeamMemberOrAdmin(user);
+
     const { photoId } = await params;
 
     const photo = await prisma.photo.findUnique({
@@ -40,12 +42,12 @@ export async function GET(
         id: photo.eventId,
         OR: [
           {
-            createdById: userId,
+            createdById: user.id,
           },
           {
             members: {
               some: {
-                id: userId,
+                id: user.id,
               },
             },
           },
@@ -76,7 +78,7 @@ export async function GET(
         {
           message: error.message,
         },
-        { status: 401 }
+        { status: error.message.includes("access required") ? 403 : 401 }
       );
     }
 
@@ -94,23 +96,10 @@ export async function DELETE(
   { params }: { params: Promise<{ photoId: string }> }
 ) {
   try {
-    const userId = await getUserIdFromRequest(req);
+    const user = await getUserFromRequest(req);
+    requireTeamMemberOrAdmin(user);
+
     const { photoId } = await params;
-
-    const user = await prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          message: "User not found",
-        },
-        { status: 404 }
-      );
-    }
 
     const photo = await prisma.photo.findUnique({
       where: {
@@ -134,7 +123,7 @@ export async function DELETE(
       const event = await prisma.event.findFirst({
         where: {
           id: photo.eventId,
-          createdById: userId,
+          createdById: user.id,
         },
       });
 
@@ -147,7 +136,7 @@ export async function DELETE(
         );
       }
     } else {
-      if (photo.uploadedById !== userId) {
+      if (photo.uploadedById !== user.id) {
         return NextResponse.json(
           {
             message: "You can only delete your own photos",
@@ -177,7 +166,7 @@ export async function DELETE(
         {
           message: error.message,
         },
-        { status: 401 }
+        { status: error.message.includes("access required") ? 403 : 401 }
       );
     }
 

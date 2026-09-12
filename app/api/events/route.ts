@@ -1,28 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getUserIdFromRequest } from "@/lib/getUserIdFromRequest";
+import { getUserFromRequest, requireAdmin } from "@/lib/auth";
 import { createEventSchema } from "@/lib/validations/event";
 
 export async function POST(req: NextRequest) {
   try {
-    const userId = await getUserIdFromRequest(req);
+    const user = await getUserFromRequest(req);
+    requireAdmin(user);
 
     const body = await req.json();
-
-    const user = await prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
-    });
-
-    if (!user || user.role !== "ADMIN") {
-      return NextResponse.json(
-        {
-          message: "Only admins can create events",
-        },
-        { status: 403 }
-      );
-    }
 
     const result = createEventSchema.safeParse(body);
 
@@ -43,7 +29,7 @@ export async function POST(req: NextRequest) {
         name,
         description,
         eventDate,
-        createdById: userId,
+        createdById: user.id,
       },
     });
 
@@ -62,7 +48,7 @@ export async function POST(req: NextRequest) {
         {
           message: error.message,
         },
-        { status: 401 }
+        { status: error.message.includes("Admin") ? 403 : 401 }
       );
     }
 
@@ -77,18 +63,18 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const userId = await getUserIdFromRequest(req);
+    const user = await getUserFromRequest(req);
 
     const events = await prisma.event.findMany({
       where: {
         OR: [
           {
-            createdById: userId,
+            createdById: user.id,
           },
           {
             members: {
               some: {
-                id: userId,
+                id: user.id,
               },
             },
           },
@@ -100,6 +86,14 @@ export async function GET(req: NextRequest) {
             id: true,
             name: true,
             email: true,
+          },
+        },
+        members: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
           },
         },
       },

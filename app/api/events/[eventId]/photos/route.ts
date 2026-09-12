@@ -1,22 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getUserIdFromRequest } from "@/lib/getUserIdFromRequest";
+import { getUserFromRequest, requireTeamMemberOrAdmin } from "@/lib/auth";
+import { uploadFileToSupabase, generateStorageKey, isStorageConfigured } from "@/lib/storage";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
-    const userId = await getUserIdFromRequest(req);
+    const user = await getUserFromRequest(req);
+    requireTeamMemberOrAdmin(user);
+
     const { eventId } = await params;
-    const body = await req.json();
 
-    const { filename, storageKey, storageUrl, fileSize } = body;
+    // Handle multipart form data for actual file upload
+    const formData = await req.formData();
+    const file = formData.get('file') as File;
 
-    if (!filename || !storageKey || !fileSize) {
+    if (!file) {
       return NextResponse.json(
         {
-          message: "filename, storageKey, and fileSize are required",
+          message: "File is required",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      return NextResponse.json(
+        {
+          message: "Only image files are allowed",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        {
+          message: "File size must be less than 10MB",
         },
         { status: 400 }
       );
@@ -27,12 +52,12 @@ export async function POST(
         id: eventId,
         OR: [
           {
-            createdById: userId,
+            createdById: user.id,
           },
           {
             members: {
               some: {
-                id: userId,
+                id: user.id,
               },
             },
           },
@@ -49,14 +74,29 @@ export async function POST(
       );
     }
 
+    let storageUrl: string;
+    let storageKey: string;
+
+    if (isStorageConfigured()) {
+      // Upload to Supabase Storage
+      storageKey = generateStorageKey(eventId, file.name);
+      const uploadResult = await uploadFileToSupabase(file, storageKey);
+      storageUrl = uploadResult.url;
+      storageKey = uploadResult.key;
+    } else {
+      // Fallback to dummy implementation
+      storageKey = `dummy/${file.name}`;
+      storageUrl = `https://picsum.photos/seed/${Math.random()}/800/600`;
+    }
+
     const photo = await prisma.photo.create({
       data: {
         eventId,
-        uploadedById: userId,
-        filename,
+        uploadedById: user.id,
+        filename: file.name,
         storageKey,
         storageUrl,
-        fileSize,
+        fileSize: file.size,
       },
     });
 
@@ -75,7 +115,7 @@ export async function POST(
         {
           message: error.message,
         },
-        { status: 401 }
+        { status: error.message.includes("access required") ? 403 : 401 }
       );
     }
 
@@ -93,7 +133,9 @@ export async function GET(
   { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
-    const userId = await getUserIdFromRequest(req);
+    const user = await getUserFromRequest(req);
+    requireTeamMemberOrAdmin(user);
+
     const { eventId } = await params;
 
     const event = await prisma.event.findFirst({
@@ -101,12 +143,12 @@ export async function GET(
         id: eventId,
         OR: [
           {
-            createdById: userId,
+            createdById: user.id,
           },
           {
             members: {
               some: {
-                id: userId,
+                id: user.id,
               },
             },
           },
@@ -155,7 +197,7 @@ export async function GET(
         {
           message: error.message,
         },
-        { status: 401 }
+        { status: error.message.includes("access required") ? 403 : 401 }
       );
     }
 

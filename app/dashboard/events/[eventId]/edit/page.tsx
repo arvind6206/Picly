@@ -14,6 +14,7 @@ export default function EditEventPage() {
   const router = useRouter()
   const params = useParams()
   const eventId = params.eventId as string
+  const [user, setUser] = useState<any>(null)
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [eventDate, setEventDate] = useState("")
@@ -22,8 +23,29 @@ export default function EditEventPage() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
 
   useEffect(() => {
+    fetchUser()
     fetchEvent()
   }, [eventId])
+
+  const fetchUser = async () => {
+    try {
+      const response = await fetch("/api/auth/me")
+      if (response.ok) {
+        const data = await response.json()
+        setUser(data.user)
+
+        // Check if user is ADMIN
+        if (data.user.role !== "ADMIN") {
+          setToast({ message: "Only admins can edit events", type: "error" })
+          setTimeout(() => router.push(`/dashboard/events/${eventId}`), 2000)
+        }
+      } else {
+        router.push("/auth/login")
+      }
+    } catch (error) {
+      router.push("/auth/login")
+    }
+  }
 
   const fetchEvent = async () => {
     try {
@@ -47,6 +69,13 @@ export default function EditEventPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Double-check role before submission
+    if (user?.role !== "ADMIN") {
+      setToast({ message: "Only admins can edit events", type: "error" })
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -75,6 +104,23 @@ export default function EditEventPage() {
     return (
       <DashboardLayout>
         <Loading />
+      </DashboardLayout>
+    )
+  }
+
+  if (user?.role !== "ADMIN") {
+    return (
+      <DashboardLayout>
+        <div className="max-w-2xl mx-auto">
+          <Card className="border-gray-200 shadow-sm">
+            <CardContent className="p-8 text-center">
+              <p className="text-gray-600 mb-4">Only admins can edit events.</p>
+              <Button onClick={() => router.push(`/dashboard/events/${eventId}`)}>
+                Back to Event
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </DashboardLayout>
     )
   }

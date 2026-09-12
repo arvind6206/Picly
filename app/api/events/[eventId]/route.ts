@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getUserIdFromRequest } from "@/lib/getUserIdFromRequest";
+import { getUserFromRequest, requireAdmin } from "@/lib/auth";
 import { createEventSchema } from "@/lib/validations/event";
 
 export async function GET(
@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
-    const userId = await getUserIdFromRequest(req);
+    const user = await getUserFromRequest(req);
     const { eventId } = await params;
 
     const event = await prisma.event.findFirst({
@@ -16,12 +16,12 @@ export async function GET(
         id: eventId,
         OR: [
           {
-            createdById: userId,
+            createdById: user.id,
           },
           {
             members: {
               some: {
-                id: userId,
+                id: user.id,
               },
             },
           },
@@ -87,7 +87,9 @@ export async function PATCH(
   { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
-    const userId = await getUserIdFromRequest(req);
+    const user = await getUserFromRequest(req);
+    requireAdmin(user);
+
     const { eventId } = await params;
     const body = await req.json();
 
@@ -106,7 +108,7 @@ export async function PATCH(
     const event = await prisma.event.findFirst({
       where: {
         id: eventId,
-        createdById: userId,
+        createdById: user.id,
       },
     });
 
@@ -142,7 +144,7 @@ export async function PATCH(
         {
           message: error.message,
         },
-        { status: 401 }
+        { status: error.message.includes("Admin") ? 403 : 401 }
       );
     }
 
@@ -160,13 +162,15 @@ export async function DELETE(
   { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
-    const userId = await getUserIdFromRequest(req);
+    const user = await getUserFromRequest(req);
+    requireAdmin(user);
+
     const { eventId } = await params;
 
     const event = await prisma.event.findFirst({
       where: {
         id: eventId,
-        createdById: userId,
+        createdById: user.id,
       },
     });
 
@@ -199,7 +203,7 @@ export async function DELETE(
         {
           message: error.message,
         },
-        { status: 401 }
+        { status: error.message.includes("Admin") ? 403 : 401 }
       );
     }
 

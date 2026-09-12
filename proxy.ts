@@ -8,25 +8,20 @@ export function proxy(req: NextRequest) {
     "/api/auth/register",
   ];
 
+  // Allow login/register without authentication
   if (publicRoutes.includes(pathname)) {
     return NextResponse.next();
   }
 
-  const authHeader = req.headers.get("authorization");
+  // Get JWT from HTTP-only cookie
+  const token = req.cookies.get("token")?.value;
 
-  if (!authHeader) {
+  console.log("PROXY TOKEN EXISTS:", !!token);
+
+  if (!token) {
     return NextResponse.json(
       {
         message: "Unauthorized",
-      },
-      { status: 401 }
-    );
-  }
-
-  if (!authHeader.startsWith("Bearer ")) {
-    return NextResponse.json(
-      {
-        message: "Invalid authorization format",
       },
       { status: 401 }
     );

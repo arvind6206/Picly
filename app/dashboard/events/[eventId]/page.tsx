@@ -12,12 +12,28 @@ export default function EventDetailPage() {
   const router = useRouter()
   const params = useParams()
   const eventId = params.eventId as string
+  const [user, setUser] = useState<any>(null)
   const [event, setEvent] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    fetchUser()
     fetchEvent()
   }, [eventId])
+
+  const fetchUser = async () => {
+    try {
+      const response = await fetch("/api/auth/me")
+      if (response.ok) {
+        const data = await response.json()
+        setUser(data.user)
+      } else {
+        router.push("/auth/login")
+      }
+    } catch (error) {
+      router.push("/auth/login")
+    }
+  }
 
   const fetchEvent = async () => {
     try {
@@ -59,7 +75,7 @@ export default function EventDetailPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <Button variant="ghost" size="icon" className="text-gray-700" onClick={() => router.back()}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
@@ -67,114 +83,122 @@ export default function EventDetailPage() {
               <p className="text-gray-600">{event.description || "No description"}</p>
             </div>
           </div>
-          <Button onClick={() => router.push(`/dashboard/events/${eventId}/edit`)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Event
-          </Button>
+          {user?.role === "ADMIN" && (
+            <Button onClick={() => router.push(`/dashboard/events/${eventId}/edit`)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Event
+            </Button>
+          )}
         </div>
 
         {/* Event Info */}
         <div className="grid gap-4 md:grid-cols-3">
-          <Card>
+          <Card className="border-gray-200 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Date</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-700">Date</CardTitle>
               <Calendar className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-lg font-medium">
+              <div className="text-lg font-bold text-gray-900">
                 {event.eventDate ? new Date(event.eventDate).toLocaleDateString() : "No date"}
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-gray-200 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Team Members</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-700">Team Members</CardTitle>
               <Users className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-lg font-medium">{event.members?.length || 0}</div>
+              <div className="text-lg font-bold text-gray-900">{event.members?.length || 0}</div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-gray-200 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Photos</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-700">Photos</CardTitle>
               <ImageIcon className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-lg font-medium">0</div>
+              <div className="text-lg font-bold text-gray-900">0</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Quick Actions */}
         <div className="grid gap-4 md:grid-cols-3">
-          <Card className="cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => router.push(`/dashboard/events/${eventId}/photos`)}>
+          <Card className="cursor-pointer hover:bg-gray-50 transition-colors border-gray-200 shadow-sm" onClick={() => router.push(`/dashboard/events/${eventId}/photos`)}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ImageIcon className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-gray-900">
+                <ImageIcon className="h-5 w-5 text-indigo-600" />
                 Manage Photos
               </CardTitle>
-              <CardDescription>Upload and manage event photos</CardDescription>
+              <CardDescription className="text-gray-600">Upload and manage event photos</CardDescription>
             </CardHeader>
           </Card>
 
-          <Card className="cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => router.push(`/dashboard/events/${eventId}/gallery`)}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ImageIcon className="h-5 w-5" />
-                Client Gallery
-              </CardTitle>
-              <CardDescription>Share and publish photos</CardDescription>
-            </CardHeader>
-          </Card>
+          {user?.role === "ADMIN" && (
+            <Card className="cursor-pointer hover:bg-gray-50 transition-colors border-gray-200 shadow-sm" onClick={() => router.push(`/dashboard/events/${eventId}/gallery`)}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-gray-900">
+                  <ImageIcon className="h-5 w-5 text-indigo-600" />
+                  Client Gallery
+                </CardTitle>
+                <CardDescription className="text-gray-600">Share and publish photos</CardDescription>
+              </CardHeader>
+            </Card>
+          )}
 
-          <Card className="cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => router.push(`/dashboard/events/${eventId}/members`)}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Manage Team
-              </CardTitle>
-              <CardDescription>Add or remove team members</CardDescription>
-            </CardHeader>
-          </Card>
+          {user?.role === "ADMIN" && (
+            <Card className="cursor-pointer hover:bg-gray-50 transition-colors border-gray-200 shadow-sm" onClick={() => router.push(`/dashboard/events/${eventId}/members`)}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-gray-900">
+                  <Users className="h-5 w-5 text-indigo-600" />
+                  Manage Team
+                </CardTitle>
+                <CardDescription className="text-gray-600">Add or remove team members</CardDescription>
+              </CardHeader>
+            </Card>
+          )}
         </div>
 
         {/* Team Members */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Team Members</CardTitle>
-                <CardDescription>People with access to this event</CardDescription>
+        {user?.role === "ADMIN" && (
+          <Card className="border-gray-200 shadow-sm">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-gray-900">Team Members</CardTitle>
+                  <CardDescription className="text-gray-600">People with access to this event</CardDescription>
+                </div>
+                <Button size="sm" onClick={() => router.push(`/dashboard/events/${eventId}/members`)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Member
+                </Button>
               </div>
-              <Button size="sm" onClick={() => router.push(`/dashboard/events/${eventId}/members`)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Member
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {event.members && event.members.length > 0 ? (
-              <div className="space-y-2">
-                {event.members.map((member: any) => (
-                  <div key={member.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-900">{member.name}</p>
-                      <p className="text-sm text-gray-500">{member.email}</p>
+            </CardHeader>
+            <CardContent>
+              {event.members && event.members.length > 0 ? (
+                <div className="space-y-2">
+                  {event.members.map((member: any) => (
+                    <div key={member.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                      <div>
+                        <p className="font-medium text-gray-900">{member.name}</p>
+                        <p className="text-sm text-gray-600">{member.email}</p>
+                      </div>
+                      <span className="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full">
+                        {member.role}
+                      </span>
                     </div>
-                    <span className="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full">
-                      {member.role}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-center py-4">No team members yet</p>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-600 text-center py-4">No team members yet</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </DashboardLayout>
   )

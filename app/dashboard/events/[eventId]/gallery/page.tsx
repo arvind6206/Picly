@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, CheckCircle, ExternalLink, Lock, Check } from "lucide-react"
+import { ArrowLeft, CheckCircle, ExternalLink, Lock, Check, Trash2 } from "lucide-react"
 import { Loading } from "@/components/ui/loading"
 import { Toast } from "@/components/ui/toast"
 
@@ -15,23 +15,46 @@ export default function GalleryManagePage() {
   const router = useRouter()
   const params = useParams()
   const eventId = params.eventId as string
-  
+
+  const [user, setUser] = useState<any>(null)
   const [gallery, setGallery] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [pin, setPin] = useState("")
   const [creating, setCreating] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
-  
+
   // For selecting photos to add
   const [eventPhotos, setEventPhotos] = useState<any[]>([])
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([])
   const [addingPhotos, setAddingPhotos] = useState(false)
+  const [removingPhoto, setRemovingPhoto] = useState<string | null>(null)
 
   useEffect(() => {
+    fetchUser()
     fetchGallery()
     fetchEventPhotos()
   }, [eventId])
+
+  const fetchUser = async () => {
+    try {
+      const response = await fetch("/api/auth/me")
+      if (response.ok) {
+        const data = await response.json()
+        setUser(data.user)
+
+        // Check if user is ADMIN
+        if (data.user.role !== "ADMIN") {
+          setToast({ message: "Only admins can manage galleries", type: "error" })
+          setTimeout(() => router.push(`/dashboard/events/${eventId}`), 2000)
+        }
+      } else {
+        router.push("/auth/login")
+      }
+    } catch (error) {
+      router.push("/auth/login")
+    }
+  }
 
   const fetchGallery = async () => {
     try {
@@ -145,8 +168,45 @@ export default function GalleryManagePage() {
     }
   }
 
+  const handleRemovePhotoFromGallery = async (photoId: string) => {
+    setRemovingPhoto(photoId)
+    try {
+      const response = await fetch(`/api/events/${eventId}/gallery/photos/${photoId}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        setToast({ message: "Photo removed from gallery", type: "success" })
+        fetchGallery()
+      } else {
+        setToast({ message: "Failed to remove photo", type: "error" })
+      }
+    } catch (error) {
+      setToast({ message: "Something went wrong", type: "error" })
+    } finally {
+      setRemovingPhoto(null)
+    }
+  }
+
   if (loading) {
     return <DashboardLayout><Loading /></DashboardLayout>
+  }
+
+  if (user?.role !== "ADMIN") {
+    return (
+      <DashboardLayout>
+        <div className="max-w-2xl mx-auto">
+          <Card className="border-gray-200 shadow-sm">
+            <CardContent className="p-8 text-center">
+              <p className="text-gray-600 mb-4">Only admins can manage galleries.</p>
+              <Button onClick={() => router.push(`/dashboard/events/${eventId}`)}>
+                Back to Event
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    )
   }
 
   const galleryPhotoIds = gallery?.photos?.map((gp: any) => gp.photoId) || []
@@ -156,7 +216,7 @@ export default function GalleryManagePage() {
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+          <Button variant="ghost" size="icon" className="text-gray-700" onClick={() => router.back()}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -166,15 +226,15 @@ export default function GalleryManagePage() {
         </div>
 
         {!gallery ? (
-          <Card className="max-w-md">
+          <Card className="max-w-md border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle>Create Gallery</CardTitle>
-              <CardDescription>Setup a secure gallery for your clients</CardDescription>
+              <CardTitle className="text-gray-900">Create Gallery</CardTitle>
+              <CardDescription className="text-gray-600">Setup a secure gallery for your clients</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreateGallery} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="pin">Gallery PIN</Label>
+                  <Label htmlFor="pin" className="text-gray-700">Gallery PIN</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
@@ -188,7 +248,7 @@ export default function GalleryManagePage() {
                       minLength={4}
                     />
                   </div>
-                  <p className="text-xs text-gray-500">Clients will need this PIN to view the gallery.</p>
+                  <p className="text-xs text-gray-600">Clients will need this PIN to view the gallery.</p>
                 </div>
                 <Button type="submit" disabled={creating} className="w-full">
                   {creating ? "Creating..." : "Create Gallery"}
@@ -197,95 +257,134 @@ export default function GalleryManagePage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Gallery Status</CardTitle>
-                <CardDescription>Share and manage visibility</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
-                  <div>
-                    <p className="font-medium text-gray-900">Status</p>
-                    <p className="text-sm text-gray-500">
-                      {gallery.isPublished ? "Published (Visible to clients)" : "Draft (Hidden from clients)"}
-                    </p>
-                  </div>
-                  <Button 
-                    variant={gallery.isPublished ? "outline" : "default"}
-                    onClick={handleTogglePublish}
-                    disabled={publishing}
-                  >
-                    {publishing ? "Updating..." : (gallery.isPublished ? "Unpublish" : "Publish")}
-                  </Button>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Client Link</Label>
-                  <div className="flex gap-2">
-                    <Input 
-                      readOnly 
-                      value={`${window.location.origin}/gallery/${gallery.token}`} 
-                    />
-                    <Button variant="outline" size="icon" onClick={() => window.open(`/gallery/${gallery.token}`, '_blank')}>
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Photos in Gallery</Label>
-                  <p className="text-2xl font-bold">{gallery.photos?.length || 0}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Add Photos to Gallery</CardTitle>
-                <CardDescription>Select photos from the event to show in this gallery</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {availablePhotos.length === 0 ? (
-                  <div className="text-center py-6">
-                    <p className="text-gray-500">No new photos available to add.</p>
-                    <Button variant="link" onClick={() => router.push(`/dashboard/events/${eventId}/photos`)}>
-                      Upload more event photos
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-3 gap-2 max-h-60 overflow-y-auto p-1">
-                      {availablePhotos.map((photo) => (
-                        <div 
-                          key={photo.id} 
-                          className={`relative cursor-pointer rounded-md overflow-hidden border-2 ${selectedPhotoIds.includes(photo.id) ? 'border-indigo-500' : 'border-transparent'}`}
-                          onClick={() => togglePhotoSelection(photo.id)}
-                        >
-                          <img 
-                            src={photo.storageUrl || `https://picsum.photos/seed/${photo.id}/200`} 
-                            alt="event photo" 
-                            className="w-full h-20 object-cover"
-                          />
-                          {selectedPhotoIds.includes(photo.id) && (
-                            <div className="absolute inset-0 bg-indigo-500/20 flex items-center justify-center">
-                              <CheckCircle className="text-white h-6 w-6 bg-indigo-500 rounded-full" />
-                            </div>
-                          )}
-                        </div>
-                      ))}
+          <div className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card className="border-gray-200 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-gray-900">Gallery Status</CardTitle>
+                  <CardDescription className="text-gray-600">Share and manage visibility</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                    <div>
+                      <p className="font-medium text-gray-900">Status</p>
+                      <p className="text-sm text-gray-600">
+                        {gallery.isPublished ? "Published (Visible to clients)" : "Draft (Hidden from clients)"}
+                      </p>
                     </div>
-                    <Button 
-                      className="w-full" 
-                      disabled={selectedPhotoIds.length === 0 || addingPhotos}
-                      onClick={handleAddPhotosToGallery}
+                    <Button
+                      variant={gallery.isPublished ? "outline" : "default"}
+                      onClick={handleTogglePublish}
+                      disabled={publishing}
                     >
-                      {addingPhotos ? "Adding..." : `Add ${selectedPhotoIds.length} Selected Photos`}
+                      {publishing ? "Updating..." : (gallery.isPublished ? "Unpublish" : "Publish")}
                     </Button>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">Client Link</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        readOnly
+                        value={`${window.location.origin}/gallery/${gallery.token}`}
+                      />
+                      <Button variant="outline" size="icon" onClick={() => window.open(`/gallery/${gallery.token}`, '_blank')}>
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">Photos in Gallery</Label>
+                    <p className="text-2xl font-bold text-gray-900">{gallery.photos?.length || 0}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-gray-200 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-gray-900">Add Photos to Gallery</CardTitle>
+                  <CardDescription className="text-gray-600">Select photos from the event to show in this gallery</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {availablePhotos.length === 0 ? (
+                    <div className="text-center py-6">
+                      <p className="text-gray-600">No new photos available to add.</p>
+                      <Button variant="ghost" onClick={() => router.push(`/dashboard/events/${eventId}/photos`)}>
+                        Upload more event photos
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-3 gap-2 max-h-60 overflow-y-auto p-1">
+                        {availablePhotos.map((photo) => (
+                          <div
+                            key={photo.id}
+                            className={`relative cursor-pointer rounded-md overflow-hidden border-2 ${selectedPhotoIds.includes(photo.id) ? 'border-indigo-500' : 'border-transparent'}`}
+                            onClick={() => togglePhotoSelection(photo.id)}
+                          >
+                            <img
+                              src={photo.storageUrl || `https://picsum.photos/seed/${photo.id}/200`}
+                              alt="event photo"
+                              className="w-full h-20 object-cover"
+                            />
+                            {selectedPhotoIds.includes(photo.id) && (
+                              <div className="absolute inset-0 bg-indigo-500/20 flex items-center justify-center">
+                                <CheckCircle className="text-white h-6 w-6 bg-indigo-500 rounded-full" />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <Button
+                        className="w-full"
+                        disabled={selectedPhotoIds.length === 0 || addingPhotos}
+                        onClick={handleAddPhotosToGallery}
+                      >
+                        {addingPhotos ? "Adding..." : `Add ${selectedPhotoIds.length} Selected Photos`}
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {gallery.photos && gallery.photos.length > 0 && (
+              <Card className="border-gray-200 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-gray-900">Photos in Gallery</CardTitle>
+                  <CardDescription className="text-gray-600">Currently selected photos for this gallery - click to remove</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    {gallery.photos.map((gp: any) => (
+                      <div key={gp.id} className="relative group rounded-lg overflow-hidden border border-gray-200">
+                        <img
+                          src={gp.photo.storageUrl || `https://picsum.photos/seed/${gp.photo.id}/200`}
+                          alt={gp.photo.filename}
+                          className="w-full h-24 object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleRemovePhotoFromGallery(gp.photoId)}
+                            disabled={removingPhoto === gp.photoId}
+                          >
+                            {removingPhoto === gp.photoId ? (
+                              <CheckCircle className="h-4 w-4" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </div>

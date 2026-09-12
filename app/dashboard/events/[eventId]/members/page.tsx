@@ -110,7 +110,7 @@ export default function EventMembersPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <Button variant="ghost" size="icon" className="text-gray-700" onClick={() => router.back()}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
@@ -124,24 +124,24 @@ export default function EventMembersPage() {
           </Button>
         </div>
 
-        <Card>
+        <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-gray-900">
+              <Users className="h-5 w-5 text-indigo-600" />
               Current Members
             </CardTitle>
-            <CardDescription>People with access to this event</CardDescription>
+            <CardDescription className="text-gray-600">People with access to this event</CardDescription>
           </CardHeader>
           <CardContent>
             {members.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No team members yet</p>
+              <p className="text-gray-600 text-center py-4">No team members yet</p>
             ) : (
               <div className="space-y-2">
                 {members.map((member) => (
                   <div key={member.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                     <div>
                       <p className="font-medium text-gray-900">{member.name}</p>
-                      <p className="text-sm text-gray-500">{member.email}</p>
+                      <p className="text-sm text-gray-600">{member.email}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full">
@@ -150,9 +150,10 @@ export default function EventMembersPage() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        className="text-gray-700 hover:text-red-600"
                         onClick={() => handleRemoveMember(member.id)}
                       >
-                        <Trash2 className="h-4 w-4 text-red-500" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -170,10 +171,10 @@ export default function EventMembersPage() {
       >
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="user">Select User</Label>
+            <Label htmlFor="user" className="text-gray-700">Select User</Label>
             <select
               id="user"
-              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               value={selectedUserId}
               onChange={(e) => setSelectedUserId(e.target.value)}
             >

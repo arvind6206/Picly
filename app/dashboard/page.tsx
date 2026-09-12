@@ -10,22 +10,58 @@ import { Loading } from "@/components/ui/loading"
 
 export default function DashboardPage() {
   const router = useRouter()
+  const [user, setUser] = useState<any>(null)
   const [events, setEvents] = useState<any[]>([])
+  const [teamMembers, setTeamMembers] = useState<any[]>([])
+  const [totalPhotos, setTotalPhotos] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchEvents()
+    fetchDashboardData()
   }, [])
 
-  const fetchEvents = async () => {
+  const fetchDashboardData = async () => {
     try {
-      const response = await fetch("/api/events")
-      if (response.ok) {
-        const data = await response.json()
-        setEvents(data.events || [])
+      // Fetch user info
+      const userResponse = await fetch("/api/auth/me")
+      if (userResponse.ok) {
+        const userData = await userResponse.json()
+        setUser(userData.user)
+      }
+
+      // Fetch events
+      const eventsResponse = await fetch("/api/events")
+      if (eventsResponse.ok) {
+        const eventsData = await eventsResponse.json()
+        setEvents(eventsData.events || [])
+      }
+
+      // Fetch team members (only for admins)
+      if (user?.role === "ADMIN") {
+        const teamResponse = await fetch("/api/users/team-members")
+        if (teamResponse.ok) {
+          const teamData = await teamResponse.json()
+          setTeamMembers(teamData.users || [])
+        }
+      }
+
+      // Calculate total photos from events
+      const eventsResponse2 = await fetch("/api/events")
+      if (eventsResponse2.ok) {
+        const eventsData2 = await eventsResponse2.json()
+        const allEvents = eventsData2.events || []
+        let photoCount = 0
+        for (const event of allEvents) {
+          const photosResponse = await fetch(`/api/events/${event.id}/photos`)
+          if (photosResponse.ok) {
+            const photosData = await photosResponse.json()
+            photoCount += (photosData.photos || []).length
+          }
+        }
+        setTotalPhotos(photoCount)
       }
     } catch (error) {
-      console.error("Failed to fetch events", error)
+      console.error("Failed to fetch dashboard data", error)
     } finally {
       setLoading(false)
     }
@@ -40,13 +76,13 @@ export default function DashboardPage() {
     },
     {
       title: "Team Members",
-      value: "5",
+      value: teamMembers.length,
       icon: Users,
       color: "bg-green-500",
     },
     {
       title: "Total Photos",
-      value: "0",
+      value: totalPhotos,
       icon: Image,
       color: "bg-purple-500",
     },
@@ -60,18 +96,14 @@ export default function DashboardPage() {
             <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
             <p className="text-gray-600">Welcome to your photo gallery dashboard</p>
           </div>
-          <Button onClick={() => router.push("/dashboard/events/new")}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Event
-          </Button>
         </div>
 
         {/* Stats */}
         <div className="grid gap-4 md:grid-cols-3">
           {stats.map((stat) => (
-            <Card key={stat.title}>
+            <Card key={stat.title} className="border-gray-200 shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">
+                <CardTitle className="text-sm font-medium text-gray-700">
                   {stat.title}
                 </CardTitle>
                 <div className={`p-2 rounded-lg ${stat.color}`}>
@@ -79,27 +111,31 @@ export default function DashboardPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
+                <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
               </CardContent>
             </Card>
           ))}
         </div>
 
         {/* Recent Events */}
-        <Card>
+        <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle>Recent Events</CardTitle>
-            <CardDescription>Your latest photo events</CardDescription>
+            <CardTitle className="text-gray-900">Recent Events</CardTitle>
+            <CardDescription className="text-gray-600">Your latest photo events</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
               <Loading />
             ) : events.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-500 mb-4">No events yet</p>
-                <Button onClick={() => router.push("/dashboard/events/new")}>
-                  Create your first event
-                </Button>
+                <p className="text-gray-600 mb-4">
+                  {user?.role === "ADMIN" ? "No events yet" : "No events assigned to you yet"}
+                </p>
+                {user?.role === "ADMIN" && (
+                  <Button onClick={() => router.push("/dashboard/events/new")}>
+                    Create your first event
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="space-y-4">

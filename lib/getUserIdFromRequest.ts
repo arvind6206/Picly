@@ -12,7 +12,7 @@ export async function getUserIdFromRequest(
   const token = req.cookies.get("token")?.value;
 
   if (!token) {
-    throw new Error("Token missing");
+    throw new Error("Authentication token not found");
   }
 
   try {
@@ -27,8 +27,6 @@ export async function getUserIdFromRequest(
 
     return decoded.userId;
   } catch (error) {
-    console.error("JWT VERIFY ERROR:", error);
-
     throw new Error("Invalid or expired token");
   }
 }

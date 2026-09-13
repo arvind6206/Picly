@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
+import axios from "axios"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -30,11 +31,8 @@ export default function EventMembersPage() {
 
   const fetchMembers = async () => {
     try {
-      const response = await fetch(`/api/events/${eventId}/members`)
-      if (response.ok) {
-        const data = await response.json()
-        setMembers(data.members || [])
-      }
+      const response = await axios.get(`/api/events/${eventId}/members`)
+      setMembers(response.data.members || [])
     } catch (error) {
       console.error("Failed to fetch members", error)
     } finally {
@@ -44,11 +42,8 @@ export default function EventMembersPage() {
 
   const fetchAvailableUsers = async () => {
     try {
-      const response = await fetch("/api/users/team-members")
-      if (response.ok) {
-        const data = await response.json()
-        setAvailableUsers(data.users || [])
-      }
+      const response = await axios.get("/api/users/team-members")
+      setAvailableUsers(response.data.users || [])
     } catch (error) {
       console.error("Failed to fetch available users", error)
     }
@@ -58,23 +53,13 @@ export default function EventMembersPage() {
     if (!selectedUserId) return
 
     try {
-      const response = await fetch(`/api/events/${eventId}/members`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: selectedUserId }),
-      })
-
-      if (response.ok) {
-        setToast({ message: "Member added successfully", type: "success" })
-        setShowAddModal(false)
-        setSelectedUserId("")
-        fetchMembers()
-      } else {
-        const data = await response.json()
-        setToast({ message: data.message || "Failed to add member", type: "error" })
-      }
-    } catch (error) {
-      setToast({ message: "Something went wrong", type: "error" })
+      await axios.post(`/api/events/${eventId}/members`, { userId: selectedUserId })
+      setToast({ message: "Member added successfully", type: "success" })
+      setShowAddModal(false)
+      setSelectedUserId("")
+      fetchMembers()
+    } catch (error: any) {
+      setToast({ message: error.response?.data?.message || "Failed to add member", type: "error" })
     }
   }
 
@@ -82,18 +67,11 @@ export default function EventMembersPage() {
     if (!confirm("Are you sure you want to remove this member?")) return
 
     try {
-      const response = await fetch(`/api/events/${eventId}/members/${userId}`, {
-        method: "DELETE",
-      })
-
-      if (response.ok) {
-        setToast({ message: "Member removed successfully", type: "success" })
-        fetchMembers()
-      } else {
-        setToast({ message: "Failed to remove member", type: "error" })
-      }
+      await axios.delete(`/api/events/${eventId}/members/${userId}`)
+      setToast({ message: "Member removed successfully", type: "success" })
+      fetchMembers()
     } catch (error) {
-      setToast({ message: "Something went wrong", type: "error" })
+      setToast({ message: "Failed to remove member", type: "error" })
     }
   }
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import axios from "axios"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,51 +25,40 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, role }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setToast({ message: "Registration successful!", type: "success" })
-        setTimeout(() => router.push("/auth/login"), 1000)
-      } else {
-        setToast({ message: data.message || "Registration failed", type: "error" })
-      }
+      await axios.post("/api/auth/register", { name, email, password, role })
+      setToast({ message: "Registration successful!", type: "success" })
+      setTimeout(() => router.push("/auth/login"), 1000)
     } catch (error) {
-      setToast({ message: "Something went wrong", type: "error" })
+      setToast({ message: "Registration failed", type: "error" })
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mb-4 shadow-lg">
-            <Camera className="h-8 w-8 text-white" />
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl mb-6 shadow-2xl shadow-indigo-500/30">
+            <Camera className="h-10 w-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
             Picly
           </h1>
-          <p className="text-gray-600 mt-2">Professional photo sharing for events</p>
+          <p className="text-gray-600 mt-2 text-lg">Professional photo sharing for events</p>
         </div>
 
-        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-          <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-2xl font-bold text-gray-900">Create an account</CardTitle>
-            <CardDescription className="text-gray-600">Enter your details to get started</CardDescription>
+        <Card className="shadow-2xl border-0 bg-white/90 backdrop-blur-md">
+          <CardHeader className="space-y-2 pb-6">
+            <CardTitle className="text-3xl font-bold text-gray-900">Create an account</CardTitle>
+            <CardDescription className="text-gray-600 text-base">Enter your details to get started</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-gray-700 font-medium">Full Name</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <User className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <Input
                     id="name"
                     type="text"
@@ -76,14 +66,14 @@ export default function RegisterPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
-                    className="pl-10 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                    className="pl-12 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500 h-12 text-base"
                   />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-gray-700 font-medium">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <Input
                     id="email"
                     type="email"
@@ -91,32 +81,27 @@ export default function RegisterPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="pl-10 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                    className="pl-12 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500 h-12 text-base"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="role" className="text-gray-700 font-medium">
-                  Role
-                </Label>
-
-                <div className="relative h-10 w-full rounded-md border border-gray-300 bg-white shadow-sm focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-
+                <Label htmlFor="role" className="text-gray-700 font-medium">Role</Label>
+                <div className="relative h-12 w-full rounded-lg border border-gray-200 bg-white shadow-sm focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
                   <select
                     id="role"
                     value={role}
                     onChange={(e) =>
                       setRole(e.target.value as "ADMIN" | "TEAM_MEMBER")
                     }
-                    className="h-full w-full appearance-none border-0 bg-transparent pl-10 pr-10 text-sm text-gray-900 outline-none focus:outline-none focus:ring-0"
+                    className="h-full w-full appearance-none border-0 bg-transparent pl-12 pr-12 text-base text-gray-900 outline-none focus:outline-none focus:ring-0"
                   >
                     <option value="TEAM_MEMBER">Team Member</option>
                     <option value="ADMIN">Admin</option>
                   </select>
-
                   <svg
-                    className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500"
+                    className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-500"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -134,7 +119,7 @@ export default function RegisterPage() {
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-gray-700 font-medium">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <Input
                     id="password"
                     type="password"
@@ -142,19 +127,19 @@ export default function RegisterPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="pl-10 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                    className="pl-12 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500 h-12 text-base"
                   />
                 </div>
                 <p className="text-xs text-gray-500">Must be at least 6 characters</p>
               </div>
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium shadow-md transition-all"
+                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium shadow-lg shadow-indigo-500/30 transition-all h-12 text-base"
                 disabled={loading}
               >
                 {loading ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                     Creating account...
                   </>
                 ) : (
@@ -162,16 +147,16 @@ export default function RegisterPage() {
                 )}
               </Button>
             </form>
-            <div className="mt-6 text-center text-sm text-gray-600">
+            <div className="mt-8 text-center text-sm text-gray-600">
               Already have an account?{" "}
-              <Link href="/auth/login" className="text-indigo-600 hover:text-indigo-700 font-medium hover:underline">
+              <Link href="/auth/login" className="text-indigo-600 hover:text-indigo-700 font-semibold hover:underline">
                 Sign in
               </Link>
             </div>
           </CardContent>
         </Card>
 
-        <p className="text-center text-xs text-gray-500 mt-6">
+        <p className="text-center text-xs text-gray-500 mt-8">
           By creating an account, you agree to our Terms of Service and Privacy Policy
         </p>
       </div>

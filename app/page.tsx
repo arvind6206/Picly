@@ -2,6 +2,7 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
+import axios from "axios"
 import { Loading } from "@/components/ui/loading"
 
 export default function Home() {
@@ -13,12 +14,8 @@ export default function Home() {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch("/api/auth/me")
-      if (response.ok) {
-        router.push("/dashboard")
-      } else {
-        router.push("/auth/login")
-      }
+      await axios.get("/api/auth/me")
+      router.push("/dashboard")
     } catch (error) {
       router.push("/auth/login")
     }

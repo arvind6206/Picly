@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import axios from "axios"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,18 +27,13 @@ export default function NewEventPage() {
 
   const fetchUser = async () => {
     try {
-      const response = await fetch("/api/auth/me")
-      if (response.ok) {
-        const data = await response.json()
-        setUser(data.user)
+      const response = await axios.get("/api/auth/me")
+      setUser(response.data.user)
 
-        // Check if user is ADMIN
-        if (data.user.role !== "ADMIN") {
-          setToast({ message: "Only admins can create events", type: "error" })
-          setTimeout(() => router.push("/dashboard/events"), 2000)
-        }
-      } else {
-        router.push("/auth/login")
+      // Check if user is ADMIN
+      if (response.data.user.role !== "ADMIN") {
+        setToast({ message: "Only admins can create events", type: "error" })
+        setTimeout(() => router.push("/dashboard/events"), 2000)
       }
     } catch (error) {
       router.push("/auth/login")
@@ -48,7 +44,7 @@ export default function NewEventPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Double-check role before submission
     if (user?.role !== "ADMIN") {
       setToast({ message: "Only admins can create events", type: "error" })
@@ -58,22 +54,11 @@ export default function NewEventPage() {
     setSubmitting(true)
 
     try {
-      const response = await fetch("/api/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, description, eventDate }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setToast({ message: "Event created successfully!", type: "success" })
-        setTimeout(() => router.push("/dashboard/events"), 1000)
-      } else {
-        setToast({ message: data.message || "Failed to create event", type: "error" })
-      }
-    } catch (error) {
-      setToast({ message: "Something went wrong", type: "error" })
+      const response = await axios.post("/api/events", { name, description, eventDate })
+      setToast({ message: "Event created successfully!", type: "success" })
+      setTimeout(() => router.push("/dashboard/events"), 1000)
+    } catch (error: any) {
+      setToast({ message: error.response?.data?.message || "Failed to create event", type: "error" })
     } finally {
       setSubmitting(false)
     }

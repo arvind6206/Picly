@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import axios from "axios"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -28,18 +29,13 @@ export default function TeamPage() {
 
   const fetchUser = async () => {
     try {
-      const response = await fetch("/api/auth/me")
-      if (response.ok) {
-        const data = await response.json()
-        setUser(data.user)
+      const response = await axios.get("/api/auth/me")
+      setUser(response.data.user)
 
-        // Check if user is ADMIN
-        if (data.user.role !== "ADMIN") {
-          setToast({ message: "Only admins can manage team members", type: "error" })
-          setTimeout(() => router.push("/dashboard"), 2000)
-        }
-      } else {
-        router.push("/auth/login")
+      // Check if user is ADMIN
+      if (response.data.user.role !== "ADMIN") {
+        setToast({ message: "Only admins can manage team members", type: "error" })
+        setTimeout(() => router.push("/dashboard"), 2000)
       }
     } catch (error) {
       router.push("/auth/login")
@@ -48,11 +44,8 @@ export default function TeamPage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch("/api/users/team-members")
-      if (response.ok) {
-        const data = await response.json()
-        setUsers(data.users || [])
-      }
+      const response = await axios.get("/api/users/team-members")
+      setUsers(response.data.users || [])
     } catch (error) {
       console.error("Failed to fetch users", error)
     } finally {
@@ -64,25 +57,15 @@ export default function TeamPage() {
     if (!name || !email || !password) return
 
     try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, role: "TEAM_MEMBER" }),
-      })
-
-      if (response.ok) {
-        setToast({ message: "Team member added successfully", type: "success" })
-        setShowAddModal(false)
-        setName("")
-        setEmail("")
-        setPassword("")
-        fetchUsers()
-      } else {
-        const data = await response.json()
-        setToast({ message: data.message || "Failed to add team member", type: "error" })
-      }
+      await axios.post("/api/auth/register", { name, email, password, role: "TEAM_MEMBER" })
+      setToast({ message: "Team member added successfully", type: "success" })
+      setShowAddModal(false)
+      setName("")
+      setEmail("")
+      setPassword("")
+      fetchUsers()
     } catch (error) {
-      setToast({ message: "Something went wrong", type: "error" })
+      setToast({ message: "Failed to add team member", type: "error" })
     }
   }
 

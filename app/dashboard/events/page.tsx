@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import axios from "axios"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -23,11 +24,8 @@ export default function EventsPage() {
 
   const fetchUser = async () => {
     try {
-      const response = await fetch("/api/auth/me")
-      if (response.ok) {
-        const data = await response.json()
-        setUser(data.user)
-      }
+      const response = await axios.get("/api/auth/me")
+      setUser(response.data.user)
     } catch (error) {
       console.error("Failed to fetch user", error)
     }
@@ -35,11 +33,8 @@ export default function EventsPage() {
 
   const fetchEvents = async () => {
     try {
-      const response = await fetch("/api/events")
-      if (response.ok) {
-        const data = await response.json()
-        setEvents(data.events || [])
-      }
+      const response = await axios.get("/api/events")
+      setEvents(response.data.events || [])
     } catch (error) {
       console.error("Failed to fetch events", error)
     } finally {
@@ -51,18 +46,11 @@ export default function EventsPage() {
     if (!confirm("Are you sure you want to delete this event?")) return
 
     try {
-      const response = await fetch(`/api/events/${eventId}`, {
-        method: "DELETE",
-      })
-
-      if (response.ok) {
-        setToast({ message: "Event deleted successfully", type: "success" })
-        fetchEvents()
-      } else {
-        setToast({ message: "Failed to delete event", type: "error" })
-      }
+      await axios.delete(`/api/events/${eventId}`)
+      setToast({ message: "Event deleted successfully", type: "success" })
+      fetchEvents()
     } catch (error) {
-      setToast({ message: "Something went wrong", type: "error" })
+      setToast({ message: "Failed to delete event", type: "error" })
     }
   }
 
@@ -71,82 +59,96 @@ export default function EventsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Events</h1>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Events</h1>
             <p className="text-gray-600">Manage your photo events</p>
           </div>
           {user?.role === "ADMIN" && (
-            <Button onClick={() => router.push("/dashboard/events/new")}>
+            <Button
+              onClick={() => router.push("/dashboard/events/new")}
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+            >
               <Plus className="h-4 w-4 mr-2" />
               New Event
             </Button>
           )}
         </div>
 
-        <Card className="border-gray-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-gray-900">All Events</CardTitle>
+        <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <CardHeader className="bg-gradient-to-r from-gray-50 to-white border-b">
+            <CardTitle className="text-xl font-bold text-gray-900">All Events</CardTitle>
             <CardDescription className="text-gray-600">Your photo gallery events</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             {loading ? (
               <Loading />
             ) : events.length === 0 ? (
-              <div className="text-center py-8">
+              <div className="text-center py-12">
+                <div className="mx-auto w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mb-4">
+                  <Calendar className="h-8 w-8 text-indigo-600" />
+                </div>
                 <p className="text-gray-500 mb-4">No events yet</p>
-                <Button onClick={() => router.push("/dashboard/events/new")}>
+                <Button
+                  onClick={() => router.push("/dashboard/events/new")}
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                >
                   Create your first event
                 </Button>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {events.map((event) => (
                   <div
                     key={event.id}
-                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="group relative bg-gradient-to-br from-white to-gray-50 rounded-xl border border-gray-100 hover:border-indigo-200 hover:shadow-lg transition-all duration-300 overflow-hidden"
                   >
-                    <div className="flex-1 cursor-pointer" onClick={() => router.push(`/dashboard/events/${event.id}`)}>
-                      <h3 className="font-medium text-gray-900">{event.name}</h3>
-                      <p className="text-sm text-gray-600">
-                        {event.description || "No description"}
-                      </p>
-                        <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4 text-gray-500" />
-                            {event.eventDate ? new Date(event.eventDate).toLocaleDateString() : "No date"}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Users className="h-4 w-4 text-gray-500" />
-                            {event.members?.length || 0} members
-                          </span>
-                          {event._count?.photos != null && (
-                            <span className="flex items-center gap-1">
-                              <ImageIcon className="h-4 w-4 text-gray-500" />
-                              {event._count.photos} photos
-                            </span>
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="relative p-5">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="p-2 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg group-hover:from-indigo-200 group-hover:to-purple-200 transition-colors">
+                          <Calendar className="h-5 w-5 text-indigo-600" />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {user?.role === "ADMIN" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                              onClick={() => router.push(`/dashboard/events/${event.id}/edit`)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {user?.role === "ADMIN" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                              onClick={() => handleDelete(event.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           )}
                         </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {user?.role === "ADMIN" && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-gray-700"
-                          onClick={() => router.push(`/dashboard/events/${event.id}/edit`)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {user?.role === "ADMIN" && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-gray-700 hover:text-red-600"
-                          onClick={() => handleDelete(event.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
+                      </div>
+                      <div
+                        className="cursor-pointer"
+                        onClick={() => router.push(`/dashboard/events/${event.id}`)}
+                      >
+                        <h3 className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors mb-2">{event.name}</h3>
+                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                          {event.description || "No description"}
+                        </p>
+                        <div className="flex items-center gap-3 text-sm text-gray-500">
+                          <span className="flex items-center gap-1 bg-white px-2 py-1 rounded-full border border-gray-100">
+                            <Calendar className="h-3 w-3" />
+                            {event.eventDate ? new Date(event.eventDate).toLocaleDateString() : "No date"}
+                          </span>
+                          <span className="flex items-center gap-1 bg-white px-2 py-1 rounded-full border border-gray-100">
+                            <Users className="h-3 w-3" />
+                            {event.members?.length || 0}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
+import axios from "axios"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -38,18 +39,13 @@ export default function GalleryManagePage() {
 
   const fetchUser = async () => {
     try {
-      const response = await fetch("/api/auth/me")
-      if (response.ok) {
-        const data = await response.json()
-        setUser(data.user)
+      const response = await axios.get("/api/auth/me")
+      setUser(response.data.user)
 
-        // Check if user is ADMIN
-        if (data.user.role !== "ADMIN") {
-          setToast({ message: "Only admins can manage galleries", type: "error" })
-          setTimeout(() => router.push(`/dashboard/events/${eventId}`), 2000)
-        }
-      } else {
-        router.push("/auth/login")
+      // Check if user is ADMIN
+      if (response.data.user.role !== "ADMIN") {
+        setToast({ message: "Only admins can manage galleries", type: "error" })
+        setTimeout(() => router.push(`/dashboard/events/${eventId}`), 2000)
       }
     } catch (error) {
       router.push("/auth/login")
@@ -58,15 +54,10 @@ export default function GalleryManagePage() {
 
   const fetchGallery = async () => {
     try {
-      const response = await fetch(`/api/events/${eventId}/gallery`)
-      if (response.ok) {
-        const data = await response.json()
-        setGallery(data.gallery)
-      } else {
-        setGallery(null)
-      }
+      const response = await axios.get(`/api/events/${eventId}/gallery`)
+      setGallery(response.data.gallery)
     } catch (error) {
-      console.error("Failed to fetch gallery", error)
+      setGallery(null)
     } finally {
       setLoading(false)
     }
@@ -74,11 +65,8 @@ export default function GalleryManagePage() {
 
   const fetchEventPhotos = async () => {
     try {
-      const response = await fetch(`/api/events/${eventId}/photos`)
-      if (response.ok) {
-        const data = await response.json()
-        setEventPhotos(data.photos || [])
-      }
+      const response = await axios.get(`/api/events/${eventId}/photos`)
+      setEventPhotos(response.data.photos || [])
     } catch (error) {
       console.error("Failed to fetch event photos", error)
     }
@@ -90,24 +78,14 @@ export default function GalleryManagePage() {
       setToast({ message: "PIN must be at least 4 characters", type: "error" })
       return
     }
-    
+
     setCreating(true)
     try {
-      const response = await fetch(`/api/events/${eventId}/gallery`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin }),
-      })
-
-      if (response.ok) {
-        setToast({ message: "Gallery created successfully", type: "success" })
-        fetchGallery()
-      } else {
-        const data = await response.json()
-        setToast({ message: data.message || "Failed to create gallery", type: "error" })
-      }
+      await axios.post(`/api/events/${eventId}/gallery`, { pin })
+      setToast({ message: "Gallery created successfully", type: "success" })
+      fetchGallery()
     } catch (error) {
-      setToast({ message: "Something went wrong", type: "error" })
+      setToast({ message: "Failed to create gallery", type: "error" })
     } finally {
       setCreating(false)
     }
@@ -118,21 +96,11 @@ export default function GalleryManagePage() {
     setPublishing(true)
     try {
       const action = gallery.isPublished ? "unpublish" : "publish"
-      const response = await fetch(`/api/events/${eventId}/gallery/${action}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin: pin || "1234" }), // Use existing PIN or default
-      })
-
-      if (response.ok) {
-        setToast({ message: `Gallery ${action}ed successfully`, type: "success" })
-        fetchGallery()
-      } else {
-        const data = await response.json()
-        setToast({ message: data.message || "Failed to update status", type: "error" })
-      }
+      await axios.post(`/api/events/${eventId}/gallery/${action}`, { pin: pin || "1234" })
+      setToast({ message: `Gallery ${action}ed successfully`, type: "success" })
+      fetchGallery()
     } catch (error) {
-      setToast({ message: "Something went wrong", type: "error" })
+      setToast({ message: "Failed to update status", type: "error" })
     } finally {
       setPublishing(false)
     }
@@ -140,24 +108,15 @@ export default function GalleryManagePage() {
 
   const handleAddPhotosToGallery = async () => {
     if (selectedPhotoIds.length === 0) return
-    
+
     setAddingPhotos(true)
     try {
-      const response = await fetch(`/api/events/${eventId}/gallery/photos`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photoIds: selectedPhotoIds }),
-      })
-
-      if (response.ok) {
-        setToast({ message: "Photos added to gallery", type: "success" })
-        setSelectedPhotoIds([])
-        fetchGallery()
-      } else {
-        setToast({ message: "Failed to add photos", type: "error" })
-      }
+      await axios.post(`/api/events/${eventId}/gallery/photos`, { photoIds: selectedPhotoIds })
+      setToast({ message: "Photos added to gallery", type: "success" })
+      setSelectedPhotoIds([])
+      fetchGallery()
     } catch (error) {
-      setToast({ message: "Something went wrong", type: "error" })
+      setToast({ message: "Failed to add photos", type: "error" })
     } finally {
       setAddingPhotos(false)
     }
@@ -174,18 +133,11 @@ export default function GalleryManagePage() {
   const handleRemovePhotoFromGallery = async (photoId: string) => {
     setRemovingPhoto(photoId)
     try {
-      const response = await fetch(`/api/events/${eventId}/gallery/photos/${photoId}`, {
-        method: "DELETE",
-      })
-
-      if (response.ok) {
-        setToast({ message: "Photo removed from gallery", type: "success" })
-        fetchGallery()
-      } else {
-        setToast({ message: "Failed to remove photo", type: "error" })
-      }
+      await axios.delete(`/api/events/${eventId}/gallery/photos/${photoId}`)
+      setToast({ message: "Photo removed from gallery", type: "success" })
+      fetchGallery()
     } catch (error) {
-      setToast({ message: "Something went wrong", type: "error" })
+      setToast({ message: "Failed to remove photo", type: "error" })
     } finally {
       setRemovingPhoto(null)
     }

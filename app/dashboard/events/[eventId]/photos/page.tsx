@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
+import axios from "axios"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -41,11 +42,8 @@ export default function EventPhotosPage() {
 
   const fetchPhotos = async () => {
     try {
-      const response = await fetch(`/api/events/${eventId}/photos`)
-      if (response.ok) {
-        const data = await response.json()
-        setPhotos(data.photos || [])
-      }
+      const response = await axios.get(`/api/events/${eventId}/photos`)
+      setPhotos(response.data.photos || [])
     } catch (error) {
       console.error("Failed to fetch photos", error)
     } finally {
@@ -66,16 +64,12 @@ export default function EventPhotosPage() {
       formData.append('file', file)
 
       try {
-        const response = await fetch(`/api/events/${eventId}/photos`, {
-          method: "POST",
-          body: formData,
+        const response = await axios.post(`/api/events/${eventId}/photos`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
         })
-
-        if (response.ok) {
-          successCount++
-        } else {
-          failCount++
-        }
+        successCount++
       } catch (error) {
         failCount++
       }
@@ -102,19 +96,11 @@ export default function EventPhotosPage() {
 
     setDeletingPhoto(photoId)
     try {
-      const response = await fetch(`/api/photos/${photoId}`, {
-        method: "DELETE",
-      })
-
-      if (response.ok) {
-        setToast({ message: "Photo deleted successfully", type: "success" })
-        fetchPhotos()
-      } else {
-        const data = await response.json()
-        setToast({ message: data.message || "Failed to delete photo", type: "error" })
-      }
+      await axios.delete(`/api/photos/${photoId}`)
+      setToast({ message: "Photo deleted successfully", type: "success" })
+      fetchPhotos()
     } catch (error) {
-      setToast({ message: "Something went wrong", type: "error" })
+      setToast({ message: "Failed to delete photo", type: "error" })
     } finally {
       setDeletingPhoto(null)
     }

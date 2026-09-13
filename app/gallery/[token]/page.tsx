@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
+import axios from "axios"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,25 +33,19 @@ export default function PublicGalleryPage() {
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault()
     setVerifying(true)
-    
+
     try {
-      const response = await fetch(`/api/gallery/${token}/verify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin }),
-      })
+      const response = await axios.post(`/api/gallery/${token}/verify`, { pin })
 
-      const data = await response.json()
-
-      if (response.ok && data.galleryToken) {
-        sessionStorage.setItem(`gallery_${token}`, data.galleryToken)
+      if (response.data.galleryToken) {
+        sessionStorage.setItem(`gallery_${token}`, response.data.galleryToken)
         setIsAuthenticated(true)
-        fetchPhotos(data.galleryToken)
+        fetchPhotos(response.data.galleryToken)
       } else {
-        setToast({ message: data.message || "Invalid PIN", type: "error" })
+        setToast({ message: response.data.message || "Invalid PIN", type: "error" })
       }
-    } catch (error) {
-      setToast({ message: "Something went wrong", type: "error" })
+    } catch (error: any) {
+      setToast({ message: error.response?.data?.message || "Something went wrong", type: "error" })
     } finally {
       setVerifying(false)
     }
@@ -59,23 +54,21 @@ export default function PublicGalleryPage() {
   const fetchPhotos = async (galleryToken: string) => {
     setLoadingPhotos(true)
     try {
-      const response = await fetch(`/api/gallery/${token}/photos`, {
+      const response = await axios.get(`/api/gallery/${token}/photos`, {
         headers: {
           Authorization: `Bearer ${galleryToken}`,
         },
       })
-
-      if (response.ok) {
-        const data = await response.json()
-        setPhotos(data.photos || [])
-      } else if (response.status === 401 || response.status === 403) {
+      setPhotos(response.data.photos || [])
+    } catch (error: any) {
+      if (error.response?.status === 401 || error.response?.status === 403) {
         // Token expired or invalid
         sessionStorage.removeItem(`gallery_${token}`)
         setIsAuthenticated(false)
         setToast({ message: "Session expired. Please enter PIN again.", type: "error" })
+      } else {
+        console.error("Failed to fetch photos", error)
       }
-    } catch (error) {
-      console.error("Failed to fetch photos", error)
     } finally {
       setLoadingPhotos(false)
     }

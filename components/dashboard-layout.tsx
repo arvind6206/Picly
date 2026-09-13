@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation"
+import axios from "axios";
 import Link from "next/link";
 import {
   Calendar,
@@ -67,18 +68,8 @@ export function DashboardLayout({
 
   const checkAuth = useCallback(async () => {
     try {
-      const response = await fetch("/api/auth/me", {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        router.push("/auth/login");
-        return;
-      }
-
-      const data = await response.json();
-      setUser(data.user);
+      const response = await axios.get("/api/auth/me");
+      setUser(response.data.user);
     } catch (error) {
       router.push("/auth/login");
     } finally {
@@ -95,14 +86,8 @@ export function DashboardLayout({
 
     setIsLoggingOut(true);
     try {
-      const response = await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-
-      if (response.ok) {
-        router.push("/auth/login");
-      }
+      await axios.post("/api/auth/logout");
+      router.push("/auth/login");
     } catch (error) {
       setIsLoggingOut(false);
     }
@@ -143,12 +128,12 @@ export function DashboardLayout({
         }`}
       >
         <div className="flex h-full flex-col">
-          <div className="flex items-center justify-between p-6 border-b border-gray-100">
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <LayoutDashboard className="h-5 w-5 text-white" />
+          <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-white to-gray-50">
+            <Link href="/dashboard" className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/25">
+                <LayoutDashboard className="h-6 w-6 text-white" />
               </div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                 Picly
               </h1>
             </Link>
@@ -170,17 +155,17 @@ export function DashboardLayout({
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 ${
+                  className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 ${
                     isActive
-                      ? "bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 font-medium"
-                      : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                      ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25 font-medium"
+                      : "text-gray-700 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:text-indigo-700"
                   }`}
                   onClick={() => setSidebarOpen(false)}
                 >
-                  <item.icon className={`h-5 w-5 ${isActive ? "text-indigo-600" : "text-gray-500"}`} />
+                  <item.icon className={`h-5 w-5 ${isActive ? "text-white" : "text-gray-500"}`} />
                   {item.name}
                   {isActive && (
-                    <div className="ml-auto w-1.5 h-1.5 bg-indigo-600 rounded-full" />
+                    <div className="ml-auto w-2 h-2 bg-white rounded-full shadow-lg" />
                   )}
                 </Link>
               );
@@ -189,22 +174,22 @@ export function DashboardLayout({
 
           <div className="border-t border-gray-100 p-4 bg-gradient-to-t from-gray-50 to-white">
             {user && (
-              <Card className="mb-4 border-gray-200 bg-white shadow-sm">
+              <Card className="mb-4 border-0 bg-gradient-to-br from-indigo-50 to-purple-50 shadow-md">
                 <div className="p-4">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
+                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
                       {user.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">
+                      <p className="text-sm font-bold text-gray-900 truncate">
                         {user.name}
                       </p>
-                      <p className="text-xs text-gray-500 truncate">
+                      <p className="text-xs text-gray-600 truncate">
                         {user.email}
                       </p>
                     </div>
                   </div>
-                  <span className="inline-flex items-center text-xs px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-full font-medium">
+                  <span className="inline-flex items-center text-xs px-3 py-1.5 bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 rounded-full font-semibold shadow-sm">
                     {user.role}
                   </span>
                 </div>
@@ -213,7 +198,7 @@ export function DashboardLayout({
 
             <Button
               variant="outline"
-              className="w-full justify-start hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+              className="w-full justify-start hover:bg-gradient-to-r hover:from-red-50 hover:to-red-100 hover:text-red-600 hover:border-red-200 transition-all duration-200"
               onClick={handleLogout}
               disabled={isLoggingOut}
             >

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import axios from "axios"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,6 +14,7 @@ import { Toast } from "@/components/ui/toast"
 import { Modal } from "@/components/ui/modal"
 
 export default function TeamPage() {
+  const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)

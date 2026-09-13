@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { Input } from '@/components/ui/input'
 
 describe('Input Component', () => {
@@ -40,9 +40,8 @@ describe('Input Component', () => {
     const handleChange = jest.fn()
     render(<Input onChange={handleChange} />)
     
-    const input = screen.getByRole('textbox')
-    input.value = 'test value'
-    input.dispatchEvent(new Event('change', { bubbles: true }))
+    const input = screen.getByRole('textbox') as HTMLInputElement
+    fireEvent.change(input, { target: { value: 'test value' } })
     
     expect(input.value).toBe('test value')
   })
